@@ -24,7 +24,8 @@ observation, anyone can read it. Deployed and running on **Arc mainnet (Chain ID
 
 ### Live dashboard
 
-**https://ooii166.github.io/Lightning/** — reads the contract above directly from Arc RPC.
+**https://ooii166.github.io/Lightning/microgrants/ArcFlow/web/index.html** — reads the contract above directly from Arc RPC.
+(The Pages root https://ooii166.github.io/Lightning/ is a short landing page that links here.)
 No backend, no API key.
 
 ### What it does

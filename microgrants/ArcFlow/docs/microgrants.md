@@ -12,7 +12,7 @@
 - **Repo:** https://github.com/ooii166/Lightning (the project lives under `/microgrants/ArcFlow/`)
 - **Live contract (mainnet):** [`0xf004c40f0b8204c21991309A808dA2ee4895B9Eb`](https://explorer.arc.io/address/0xf004c40f0b8204c21991309A808dA2ee4895B9Eb) — Arc mainnet, Chain ID 5042, deployed 2026-09-19
 - **Deploy transaction:** [`0xcc565985be918b951caac394d65f2ca0fee68e15496d65b6b09bf85f3994d1a5`](https://explorer.arc.io/tx/0xcc565985be918b951caac394d65f2ca0fee68e15496d65b6b09bf85f3994d1a5) (block 21,593,815)
-- **Live dashboard:** https://ooii166.github.io/Lightning/
+- **Live dashboard:** https://ooii166.github.io/Lightning/microgrants/ArcFlow/web/index.html (landing page: https://ooii166.github.io/Lightning/)
 - **Current ledger depth:** call `total()` on the contract — it returns the number of observations recorded so far, and is the honest measure of how much real data this ledger holds.
 
 ---
@@ -29,13 +29,13 @@ Arc solves this for me in three ways that no other L1 does today:
 
 1. **USDC as native gas.** My cost per `record()` call is paid in USDC, not a volatile token. I can budget in dollars, not in something that moves 20% between when I commit and when I send.
 2. **Finality under a second.** A high-frequency recorder can publish observations on a short interval without the chain falling behind the data.
-3. **The validator set is institutions I can name.** BlackRock, Visa, DTCC, Mastercard. The state I'm writing to lives on a chain that I trust not to silently reorg.
+3. **The validator set is institutions I can name.** Arc's founding validator cohort is BlackRock, DTCC, Galaxy, Global Payments, ICE, Mastercard, MoneyGram, SBI Group, Standard Chartered, Sumitomo Corporation and Visa — [announced by Circle on 5 August 2026](https://www.circle.com/pressroom/circle-announces-founding-validator-cohort-and-major-integrations-for-arc-ahead-of-september-16-mainnet-launch), with Arc operated by a permissioned validator set. The state I'm writing to does not live on an anonymous chain.
 
 These three together are exactly the conditions under which a shared, on-chain cross-chain ledger makes sense. Building ArcFlow on Ethereum mainnet would be 100x more expensive per write and the data would have weaker guarantees on consistency.
 
 ## What it does
 
-- Anyone can publish one observation (`fromChain, toChain, spreadBps`) by calling `record(...)`. Cost: roughly 0.001 USDC in gas at Arc's 20 Gwei floor.
+- Anyone can publish one observation (`fromChain, toChain, spreadBps`) by calling `record(...)`. Measured on mainnet: **79,821 gas** for a repeat write and 114,381 gas the first time a pair is recorded (its storage slot has to be initialised). At 21 Gwei that is **≈0.0017 USDC** per observation, paid in native USDC.
 - Anyone can query `latestPair(from, to)`, `snapshot9()` (9 pairs in one call), or `latestN(n)` for the latest N observations.
 - The web dashboard renders the same data read-only from Arc RPC. No backend. No API key.
 

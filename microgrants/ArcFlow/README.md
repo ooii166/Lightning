@@ -21,11 +21,16 @@ This is the tool I built to answer that question for myself.
 
 ## What it does
 
-- `record(fromChain, toChain, spreadBps)` — publish one observation. Paid in native USDC on Arc (~50k gas, ~0.001 USDC at today's gas price).
+- `record(fromChain, toChain, spreadBps)` — publish one observation. Paid in native USDC on Arc (measured: 79,821 gas for a repeat write, 114,381 the first time a pair is recorded — ≈0.0017 USDC at 21 Gwei).
 - `latestPair(fromChain, toChain)` — most recent observation for a given pair.
 - `latestN(n)` — newest N observations (max 50).
 - `snapshot9()` — batched latest spread for the 9 most common pairs in one call (saves RPC round-trips).
 - `total()` / `get(i)` — append-only log of every observation.
+
+A pair that has never been recorded reads back as **`0` bps with timestamp `0`**, which is
+how `latestPair` and `snapshot9()` signal "no observation yet" rather than a real zero
+spread. The publisher feeds every pair `snapshot9()` reports, so those slots fill in as the
+schedule runs.
 
 **Chain IDs** are first-class constants in the contract:
 `ARC (5042) · ETHEREUM (1) · BASE (8453) · OPTIMISM (10) · ARBITRUM (42161) · POLYGON (137) · AVALANCHE (43114) · BNB (56) · LINEA (59144)`
@@ -53,7 +58,7 @@ ArcFlow/
 > **Status:** deployed and running on **Arc Mainnet** (Chain ID 5042).
 
 - **Contract (mainnet):** [`0xf004c40f0b8204c21991309A808dA2ee4895B9Eb`](https://explorer.arc.io/address/0xf004c40f0b8204c21991309A808dA2ee4895B9Eb) — deployed 2026-09-19, tx `0xcc565985be918b951caac394d65f2ca0fee68e15496d65b6b09bf85f3994d1a5`, block 21,593,815, gasUsed 781,224
-- **Dashboard:** **https://ooii166.github.io/Lightning/** — reads the contract above straight from Arc RPC
+- **Dashboard:** **https://ooii166.github.io/Lightning/microgrants/ArcFlow/web/index.html** — reads the contract above straight from Arc RPC (no backend, no API key). The Pages root, https://ooii166.github.io/Lightning/, is a short landing page that links to it.
 - **RPC (mainnet):** `https://rpc.mainnet.arc.io`
 - **Verifiable state:** call `total()` on the contract to see how many observations the ledger holds.
 
@@ -84,8 +89,10 @@ npx hardhat ignition deploy ignition/modules/ArcFlow.ts --network arc
 
 ## Cost and how it is automated
 
-One `record(...)` call is roughly 50k gas, which on Arc is about **0.001 USDC** in
-native gas.
+One `record(...)` call costs about **80,000 gas** — measured on mainnet at 79,821 gas
+for a repeat write, and 114,381 the first time a pair is recorded, when its storage slot
+is initialised. At Arc's current gas price of 21 Gwei that is **≈0.0017 USDC** per
+observation, paid in native USDC.
 
 The publisher therefore does not write on every run. Before writing, it asks the
 contract what it last recorded for each pair (`latestPair`) and only writes when

@@ -93,13 +93,20 @@ CHAINS = {
     'linea':     {'id': 59144, 'dex': 'linea',      'usdc': '0x176211869cA2b568f2A7D4EE941E073a821EE1ff'},
 }
 
+# Every pair `snapshot9()` reports, so the contract's headline view is fully
+# populated instead of showing a permanent zero for pairs nothing ever writes.
+# The last entry is extra: it is a pair people actually bridge, so it is worth
+# recording even though snapshot9() does not surface it.
 PAIRS = [
-    ('arc', 'ethereum'),
-    ('arc', 'base'),
-    ('arc', 'arbitrum'),
-    ('arc', 'polygon'),
-    ('arc', 'optimism'),
-    ('ethereum', 'base'),
+    ('arc', 'ethereum'),    # snapshot9[0]
+    ('arc', 'base'),        # snapshot9[1]
+    ('arc', 'optimism'),    # snapshot9[2]
+    ('arc', 'arbitrum'),    # snapshot9[3]
+    ('arc', 'polygon'),     # snapshot9[4]
+    ('arc', 'avalanche'),   # snapshot9[5]
+    ('arc', 'bnb'),         # snapshot9[6]
+    ('arc', 'linea'),       # snapshot9[7]
+    ('ethereum', 'base'),   # snapshot9[8]
     ('ethereum', 'arbitrum'),
 ]
 
