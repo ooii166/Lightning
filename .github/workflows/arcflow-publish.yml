@@ -1,0 +1,54 @@
+name: ArcFlow publisher
+
+# Records real cross-chain USDC spread observations to the ArcFlow contract on
+# Arc mainnet. Requires the ARCFLOW_PK repository secret (a funded Arc wallet).
+# Without the secret the job still runs, but the publisher stays in dry-run mode
+# and writes nothing.
+
+on:
+  schedule:
+    # Hourly. Deliberately not more frequent: each record costs ~0.001 USDC in
+    # gas, and the publisher already skips pairs that have not moved. GitHub may
+    # delay scheduled runs by a few minutes under load.
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Force a dry run (no transactions)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: arcflow-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify the signer against known vectors
+        working-directory: microgrants/ArcFlow
+        run: python agent/verify_signer.py
+
+      - name: Publish observations
+        working-directory: microgrants/ArcFlow/agent
+        env:
+          ARCFLOW_PK: ${{ secrets.ARCFLOW_PK }}
+          ARCFLOW_CONTRACT: '0xf004c40f0b8204c21991309A808dA2ee4895B9Eb'
+          ARCFLOW_RPC: 'https://rpc.mainnet.arc.io'
+          ARCFLOW_MIN_DELTA_BPS: '1'
+          ARCFLOW_MAX_RECORDS: '3'
+          ARCFLOW_MIN_BALANCE: '0.05'
+          ARCFLOW_DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '' }}
+        run: python arcflow_publisher.py

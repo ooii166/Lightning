@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArcFlow — cross-chain USDC spread ledger on Arc</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --ink:#16181d; --ink2:#4a4f5a; --ink3:#838a96;
+    --line:#e4e7ec; --green:#0f7b4f; --blue:#1a4fd6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:56px 24px 80px}
+  h1{font-size:30px;letter-spacing:-.5px;margin:0 0 10px}
+  .lede{color:var(--ink2);font-size:16px;margin:0 0 28px}
+  .cta{display:inline-block;background:var(--ink);color:#fff;text-decoration:none;
+    padding:12px 22px;border-radius:10px;font-weight:500;margin:4px 8px 4px 0}
+  .cta.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:20px 22px;margin:22px 0}
+  .card h2{font-size:14px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--ink3);margin:0 0 12px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  td{padding:8px 0;border-bottom:1px solid #eef0f4;vertical-align:top}
+  td:first-child{color:var(--ink3);width:130px;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+    background:#eef0f4;padding:2px 6px;border-radius:4px;word-break:break-all}
+  a{color:var(--blue);word-break:break-all}
+  .ok{color:var(--green);font-weight:600}
+  footer{margin-top:40px;font-size:13px;color:var(--ink3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>ArcFlow</h1>
+  <p class="lede">An on-chain ledger that records the <strong>real cost of moving USDC across
+  chains</strong>. Anyone can write an observation, anyone can read it. Running on Arc mainnet.</p>
+
+  <a class="cta" href="./microgrants/ArcFlow/web/index.html">Open the live dashboard &rarr;</a>
+  <a class="cta alt" href="https://explorer.arc.io/address/0xf004c40f0b8204c21991309A808dA2ee4895B9Eb">View contract on explorer</a>
+
+  <div class="card">
+    <h2>Live deployment · Arc mainnet</h2>
+    <table>
+      <tr><td>Status</td><td class="ok">Deployed and running</td></tr>
+      <tr><td>Contract</td><td><a href="https://explorer.arc.io/address/0xf004c40f0b8204c21991309A808dA2ee4895B9Eb"><code>0xf004c40f0b8204c21991309A808dA2ee4895B9Eb</code></a></td></tr>
+      <tr><td>Deploy tx</td><td><a href="https://explorer.arc.io/tx/0xcc565985be918b951caac394d65f2ca0fee68e15496d65b6b09bf85f3994d1a5"><code>0xcc5659…d1a5</code></a></td></tr>
+      <tr><td>Block</td><td>21,593,815</td></tr>
+      <tr><td>Chain ID</td><td>5042</td></tr>
+      <tr><td>RPC</td><td><code>https://rpc.mainnet.arc.io</code></td></tr>
+      <tr><td>Bytecode</td><td>3,368 bytes</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>What it does</h2>
+    <table>
+      <tr><td><code>record()</code></td><td>Publish one observation — <code>fromChain, toChain, spreadBps</code>. Paid in native USDC on Arc.</td></tr>
+      <tr><td><code>latestPair()</code></td><td>Most recent observation for a chain pair.</td></tr>
+      <tr><td><code>snapshot9()</code></td><td>Latest spread for the 9 most common pairs in one call.</td></tr>
+      <tr><td><code>latestN(n)</code></td><td>Newest N observations, max 50.</td></tr>
+    </table>
+  </div>
+
+  <footer>
+    <p>Source: <a href="https://github.com/ooii166/Lightning">github.com/ooii166/Lightning</a> ·
+    MIT licensed · built by Chengmiao Wang</p>
+  </footer>
+
+</div>
+</body>
+</html>

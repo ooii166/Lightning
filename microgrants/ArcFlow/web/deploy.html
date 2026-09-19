@@ -253,8 +253,9 @@ $('btnSwitch').onclick = switchNet;
 $('btnFaucet').onclick = openFund;
 $('btnDeploy').onclick = deploy;
 
-window.ethereum?.on('chainChanged', () => location.reload());
-window.ethereum?.on('accountsChanged', accs => accs.length? location.reload() : location.reload());
+// 切链后只刷新状态、不重载页面（避免自动化时连接丢失需重连）
+window.ethereum?.on('chainChanged', () => { refreshChain(); refreshBal(); });
+window.ethereum?.on('accountsChanged', accs => accs.length ? (account=accs[0], refreshChain(), refreshBal()) : location.reload());
 </script>
 </body>
 </html>
