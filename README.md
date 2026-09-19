@@ -70,7 +70,7 @@ ArcFlow has no constructor arguments. See
 
 ### License
 
-MIT.
+MIT — see [LICENSE](./LICENSE).
 
 ### Author
 

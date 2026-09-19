@@ -136,7 +136,7 @@ before the publisher does.
 
 ## License
 
-MIT.
+MIT — see [LICENSE](../../LICENSE).
 
 ---
 
