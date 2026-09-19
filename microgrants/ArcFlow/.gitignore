@@ -1,0 +1,12 @@
+# 本地 CDP 编排脚手架与临时产物
+deploy/shot.png
+deploy/.cdp_target.json
+deploy/__pycache__/
+__pycache__/
+*.pyc
+
+# 体积大的 vendored 编译器 (compile.js 会在缺失时自动拉取)
+deploy/soljson.js
+
+# 本地环境文件
+.env

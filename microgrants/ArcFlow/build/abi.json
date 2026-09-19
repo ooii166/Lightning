@@ -1,0 +1,405 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "idx",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint16",
+        "name": "fromChain",
+        "type": "uint16"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint16",
+        "name": "toChain",
+        "type": "uint16"
+      },
+      {
+        "indexed": false,
+        "internalType": "int16",
+        "name": "spreadBps",
+        "type": "int16"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "timestamp",
+        "type": "uint64"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "reporter",
+        "type": "address"
+      }
+    ],
+    "name": "ObservationRecorded",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "CHAIN_ARBITRUM",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "CHAIN_ARC",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "CHAIN_AVALANCHE",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "CHAIN_BASE",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "CHAIN_BNB",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "CHAIN_ETHEREUM",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "CHAIN_LINEA",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "CHAIN_OPTIMISM",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "CHAIN_POLYGON",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "",
+        "type": "uint16"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "i",
+        "type": "uint256"
+      }
+    ],
+    "name": "get",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint16",
+            "name": "fromChain",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "toChain",
+            "type": "uint16"
+          },
+          {
+            "internalType": "int16",
+            "name": "spreadBps",
+            "type": "int16"
+          },
+          {
+            "internalType": "uint64",
+            "name": "timestamp",
+            "type": "uint64"
+          },
+          {
+            "internalType": "address",
+            "name": "reporter",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct ArcFlow.Observation",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "history",
+    "outputs": [
+      {
+        "internalType": "uint16",
+        "name": "fromChain",
+        "type": "uint16"
+      },
+      {
+        "internalType": "uint16",
+        "name": "toChain",
+        "type": "uint16"
+      },
+      {
+        "internalType": "int16",
+        "name": "spreadBps",
+        "type": "int16"
+      },
+      {
+        "internalType": "uint64",
+        "name": "timestamp",
+        "type": "uint64"
+      },
+      {
+        "internalType": "address",
+        "name": "reporter",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "n",
+        "type": "uint256"
+      }
+    ],
+    "name": "latestN",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint16",
+            "name": "fromChain",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "toChain",
+            "type": "uint16"
+          },
+          {
+            "internalType": "int16",
+            "name": "spreadBps",
+            "type": "int16"
+          },
+          {
+            "internalType": "uint64",
+            "name": "timestamp",
+            "type": "uint64"
+          },
+          {
+            "internalType": "address",
+            "name": "reporter",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct ArcFlow.Observation[]",
+        "name": "out",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint16",
+        "name": "fromChain",
+        "type": "uint16"
+      },
+      {
+        "internalType": "uint16",
+        "name": "toChain",
+        "type": "uint16"
+      }
+    ],
+    "name": "latestPair",
+    "outputs": [
+      {
+        "internalType": "int16",
+        "name": "spreadBps",
+        "type": "int16"
+      },
+      {
+        "internalType": "uint64",
+        "name": "timestamp",
+        "type": "uint64"
+      },
+      {
+        "internalType": "address",
+        "name": "reporter",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "idx",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint16",
+        "name": "fromChain",
+        "type": "uint16"
+      },
+      {
+        "internalType": "uint16",
+        "name": "toChain",
+        "type": "uint16"
+      },
+      {
+        "internalType": "int16",
+        "name": "spreadBps",
+        "type": "int16"
+      }
+    ],
+    "name": "record",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "reporterCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "snapshot9",
+    "outputs": [
+      {
+        "internalType": "int16[9]",
+        "name": "spreads",
+        "type": "int16[9]"
+      },
+      {
+        "internalType": "uint64[9]",
+        "name": "timestamps",
+        "type": "uint64[9]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "total",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

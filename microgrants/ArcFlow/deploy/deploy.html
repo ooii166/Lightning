@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Deploy ArcFlow — Arc mainnet</title>
+  <style>
+    :root { --bg:#0a0a0a; --fg:#fafafa; --muted:#888; --accent:#5eead4; --row:#141414; --border:#1f1f1f; --err:#f87171; }
+    * { box-sizing: border-box; }
+    body { margin:0; padding:32px 16px; background:var(--bg); color:var(--fg); font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial; }
+    .wrap { max-width:780px; margin:0 auto; }
+    h1 { font-size:22px; font-weight:600; margin:0 0 4px; }
+    h1 span { color:var(--accent); }
+    .meta { color:var(--muted); font-size:13px; margin-bottom:24px; }
+    .card { background:var(--row); border:1px solid var(--border); border-radius:8px; padding:18px; margin-bottom:14px; }
+    .row { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .row b { color:var(--muted); font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:0.04em; }
+    .row span { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; }
+    .btn { background:var(--accent); color:#0a0a0a; border:0; border-radius:6px; padding:12px 20px; font-weight:600; font-size:15px; cursor:pointer; }
+    .btn:disabled { background:#333; color:#777; cursor:not-allowed; }
+    .btn.secondary { background:#1f1f1f; color:var(--fg); }
+    .log { background:#050505; border:1px solid var(--border); border-radius:6px; padding:12px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; white-space:pre-wrap; max-height:280px; overflow-y:auto; }
+    .log .ok { color:var(--accent); }
+    .log .err { color:var(--err); }
+    .log .info { color:var(--muted); }
+    a { color:var(--accent); }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+    .big { font-size:18px; font-weight:600; color:var(--accent); }
+    pre { background:#050505; border:1px solid var(--border); border-radius:6px; padding:12px; overflow-x:auto; font-size:12px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Deploy <span>ArcFlow</span></h1>
+  <p class="meta">
+    Cross-chain USDC spread ledger on Arc mainnet (Chain ID 5042).
+    Precompiled with solc 0.8.20. You only sign the deploy transaction in MetaMask.
+  </p>
+
+  <div class="card">
+    <div class="row"><b>Network</b><span id="net">—</span></div>
+    <div class="row" style="margin-top:8px"><b>Wallet</b><span id="wallet">—</span></div>
+    <div class="row" style="margin-top:8px"><b>USDC balance (gas)</b><span id="bal">—</span></div>
+    <div class="row" style="margin-top:8px"><b>Compiler</b><span id="compiler">—</span></div>
+    <div class="row" style="margin-top:8px"><b>Bytecode size</b><span id="size">—</span></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <b style="display:block;color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Deploy</b>
+        <span>Deploy ArcFlow to Arc mainnet (sign in MetaMask)</span>
+      </div>
+      <button class="btn" id="btnDeploy" disabled>Deploy</button>
+    </div>
+    <div id="deployOut" style="margin-top:12px;display:none"></div>
+  </div>
+
+  <div class="card">
+    <b style="display:block;color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Log</b>
+    <div class="log" id="log"></div>
+  </div>
+
+  <p class="meta" style="margin-top:24px;font-size:11px">
+    Everything happens in your browser. No server sees your keys. Source: <a href="https://github.com/ooii166/Lightning" target="_blank" rel="noopener">github.com/ooii166/Lightning</a>
+  </p>
+
+</div>
+
+<script src="./arcflow_artifact.js"></script>
+<script>
+const ARC = {
+  chainIdHex: '0x13b2',           // 5042
+  chainName: 'Arc',
+  rpcUrl: 'https://rpc.mainnet.arc.io',
+  symbol: 'USDC',
+  decimals: 18,
+  explorer: 'https://explorer.arc.io',
+};
+
+const log = (msg, kind='info') => {
+  const el = document.getElementById('log');
+  const stamp = new Date().toISOString().slice(11,19);
+  const cls = kind === 'ok' ? 'ok' : kind === 'err' ? 'err' : 'info';
+  el.innerHTML += `<div class="${cls}">[${stamp}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+};
+
+function shortAddr(a){ return a ? a.slice(0,6)+'…'+a.slice(-4) : '—'; }
+
+async function ensureArcNetwork() {
+  const p = window.ethereum;
+  const cur = await p.request({ method: 'eth_chainId' });
+  if (cur !== ARC.chainIdHex) {
+    log(`Wrong network (${cur}); switching to Arc mainnet…`, 'info');
+    try {
+      await p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: ARC.chainIdHex }] });
+    } catch (e) {
+      if (e.code === 4902) {
+        await p.request({ method: 'wallet_addEthereumChain', params: [{
+          chainId: ARC.chainIdHex,
+          chainName: ARC.chainName,
+          nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: ARC.decimals },
+          rpcUrls: [ARC.rpcUrl],
+          blockExplorerUrls: [ARC.explorer],
+        }] });
+      } else throw e;
+    }
+  }
+}
+
+async function refreshBalance(addr) {
+  try {
+    const hex = await window.ethereum.request({ method: 'eth_getBalance', params: [addr, 'latest'] });
+    const usdc = Number(BigInt(hex)) / 1e18;
+    document.getElementById('bal').textContent = usdc.toFixed(4) + ' USDC';
+    return usdc;
+  } catch (e) {
+    document.getElementById('bal').textContent = 'n/a';
+    return null;
+  }
+}
+
+async function runDeploy() {
+  const btn = document.getElementById('btnDeploy');
+  btn.disabled = true;
+  try {
+    await ensureArcNetwork();
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const from = accounts[0];
+    document.getElementById('wallet').textContent = shortAddr(from);
+    log('Wallet: ' + from, 'ok');
+
+    const usdc = await refreshBalance(from);
+    if (usdc !== null && usdc < 0.01) {
+      log('USDC balance too low for gas. Bridge at least ~1 USDC to Arc mainnet first.', 'err');
+      btn.disabled = false;
+      return;
+    }
+
+    const bytecode = window.ARCFLOW.bytecode;
+    log('Estimating gas…', 'info');
+    const estHex = await window.ethereum.request({
+      method: 'eth_estimateGas',
+      params: [{ from, data: bytecode }],
+    });
+    const est = parseInt(estHex, 16);
+    const gas = '0x' + Math.ceil(est * 1.2).toString(16);
+    log('Estimate: ' + est + ' gas · deploying with buffer → ' + parseInt(gas,16), 'info');
+
+    log('Opening MetaMask — please CONFIRM the deploy transaction…', 'info');
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from, data: bytecode, gas, chainId: ARC.chainIdHex }],
+    });
+    log('Tx sent: ' + txHash, 'ok');
+
+    log('Waiting for receipt…', 'info');
+    let receipt = null;
+    for (let i = 0; i < 80; i++) {
+      try {
+        receipt = await window.ethereum.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
+        if (receipt && receipt.blockNumber) break;
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 1500));
+    }
+    if (!receipt || !receipt.blockNumber) {
+      log('Timed out waiting for receipt (tx may still confirm). Tx hash above is real — check ' + ARC.explorer + '/tx/' + txHash, 'err');
+      return;
+    }
+    if (receipt.status && receipt.status !== '0x1' && receipt.status !== true) {
+      log('Transaction reverted. Status: ' + receipt.status, 'err');
+      return;
+    }
+    const addr = receipt.contractAddress;
+    log('Contract deployed at: ' + addr, 'ok');
+
+    const out = document.getElementById('deployOut');
+    out.style.display = 'block';
+    out.innerHTML = `
+      <div style="margin-top:8px"><b style="color:var(--accent)">CONTRACT ADDRESS:</b></div>
+      <pre style="user-select:all">${addr}</pre>
+      <div><a href="${ARC.explorer}/address/${addr}" target="_blank" rel="noopener">View on Arcscan →</a></div>
+      <div style="margin-top:10px"><b>Copy this for web/index.html:</b></div>
+      <pre style="user-select:all">ARCFLOW_CONTRACT=${addr}</pre>
+    `;
+    btn.textContent = 'Deployed ✓';
+    // Stash on window so an external script (CDP) can read it.
+    window.ARCFLOW_DEPLOYED = addr;
+  } catch (e) {
+    log((e && (e.message || e.shortMessage)) || JSON.stringify(e), 'err');
+    btn.disabled = false;
+  }
+}
+
+window.addEventListener('load', async () => {
+  document.getElementById('net').textContent = ARC.chainName + ' mainnet (chainId ' + parseInt(ARC.chainIdHex, 16) + ')';
+  if (!window.ARCFLOW) { log('Artifact failed to load.', 'err'); return; }
+  document.getElementById('compiler').textContent = window.ARCFLOW.compiler;
+  document.getElementById('size').textContent = window.ARCFLOW.bytecodeSize + ' bytes';
+
+  if (!window.ethereum) {
+    log('MetaMask not detected. Install the extension and refresh.', 'err');
+    return;
+  }
+  try {
+    const cur = await window.ethereum.request({ method: 'eth_chainId' });
+    if (cur !== ARC.chainIdHex) {
+      log('Not on Arc. Click Deploy to switch/add Arc network.', 'info');
+    } else {
+      log('Already on Arc mainnet.', 'ok');
+    }
+    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    if (accounts[0]) {
+      document.getElementById('wallet').textContent = shortAddr(accounts[0]);
+      await refreshBalance(accounts[0]);
+      document.getElementById('btnDeploy').disabled = false;
+      log('Wallet ready: ' + accounts[0], 'ok');
+    } else {
+      log('Click Deploy to connect MetaMask.', 'info');
+    }
+  } catch (e) { log(e.message, 'err'); }
+});
+
+document.getElementById('btnDeploy').addEventListener('click', runDeploy);
+</script>
+</body>
+</html>

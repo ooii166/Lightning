@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>ArcFlow Deploy · Arc Testnet</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0e1116;--bg2:#161b22;--border:#21262d;--fg:#e6edf3;--muted:#7d8590;
+    --accent:#58a6ff;--green:#3fb950;--red:#f85149;--orange:#d29922;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--fg);padding:24px;line-height:1.5}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 24px;font-size:14px}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:14px}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .lbl{color:var(--muted);font-size:13px}
+  .val{font-family:"SFMono-Regular",Consolas,monospace;font-size:13px;word-break:break-all}
+  button{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:10px 16px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s}
+  button:hover{opacity:.85}button:disabled{background:#30363d;color:#7d8590;cursor:not-allowed;opacity:.7}
+  button.secondary{background:#21262d;color:var(--fg);border:1px solid var(--border)}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+  .step{display:flex;align-items:flex-start;gap:12px;padding:10px 12px;border-radius:6px;background:#0d1117;border:1px solid var(--border);margin-bottom:8px}
+  .dot{width:20px;height:20px;border-radius:50%;background:#30363d;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted);flex-shrink:0;margin-top:1px}
+  .dot.ok{background:var(--green);color:#0e1116}
+  .dot.err{background:var(--red);color:#fff}
+  .dot.now{background:var(--accent);color:#fff;animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(88,166,255,.5)}50%{box-shadow:0 0 0 8px rgba(88,166,255,0)}}
+  .stxt{font-size:14px}
+  .stxt small{color:var(--muted);display:block;margin-top:2px}
+  pre{background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;max-height:120px;overflow:auto;margin:8px 0 0}
+  .ok{color:var(--green)}.err{color:var(--red)}.warn{color:var(--orange)}
+  #log{background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:10px;font-family:"SFMono-Regular",Consolas,monospace;font-size:12px;max-height:160px;overflow:auto;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ArcFlow <span style="color:var(--muted);font-weight:400;font-size:14px">· 跨链 USDC 价差链上账本</span></h1>
+  <p class="sub">部署到 Arc 测试网（Chain ID 5042002）—— 只需 2 次弹窗授权，私钥始终留在 MetaMask。</p>
+
+  <div class="card">
+    <div class="row"><span class="lbl">合约</span><span class="val">ArcFlow.sol (0.8.20, optimizer 200)</span></div>
+    <div class="row"><span class="lbl">bytecode 长度</span><span id="bcLen" class="val">—</span></div>
+    <div class="row"><span class="lbl">构造函数参数</span><span class="val">none</span></div>
+    <div class="row"><span class="lbl">预估部署 Gas</span><span id="gasEst" class="val">—</span></div>
+  </div>
+
+  <div class="card">
+    <div class="btn-row" style="margin-bottom:12px">
+      <button id="btnConnect">① 连接 MetaMask</button>
+      <button id="btnAddNet" class="secondary" disabled>② 添加 Arc Testnet</button>
+      <button id="btnSwitch" class="secondary" disabled>③ 切到 Arc Testnet</button>
+      <button id="btnFaucet" class="secondary" disabled>④ 领测试网 USDC</button>
+    </div>
+    <div class="btn-row">
+      <button id="btnDeploy" disabled>⑤ 部署合约</button>
+    </div>
+    <div style="margin-top:14px">
+      <div class="step"><div class="dot" id="d1">1</div><div class="stxt" id="s1">未连接钱包<small>需要授权 Remix/Deploy 页面访问你的钱包地址</small></div></div>
+      <div class="step"><div class="dot" id="d2">2</div><div class="stxt" id="s2">未添加 Arc Testnet<small>RPC: rpc.testnet.arc.network · 浏览器: testnet.arcscan.app</small></div></div>
+      <div class="step"><div class="dot" id="d3">3</div><div class="stxt" id="s3">未切换网络<small>当前还在别的链，部署会失败</small></div></div>
+      <div class="step"><div class="dot" id="d4">4</div><div class="stxt" id="s4">测试网 USDC 余额未知<small>部署需要 ~0.05 USDC gas，每日可领 1 USDC</small></div></div>
+      <div class="step"><div class="dot" id="d5">5</div><div class="stxt" id="s5">未部署<small>点击下方「部署合约」，MetaMask 弹窗确认即完成</small></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="lbl">部署日志</div>
+    <div id="log"></div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <div class="lbl">部署结果</div>
+    <div class="row" style="margin-top:6px"><span class="lbl">合约地址</span><span class="val ok" id="rAddr">—</span></div>
+    <div class="row"><span class="lbl">交易哈希</span><span class="val" id="rTx">—</span></div>
+    <div class="row"><span class="lbl">区块浏览器</span><span class="val"><a id="rLink" target="_blank" style="color:var(--accent)">—</a></span></div>
+  </div>
+</div>
+
+<script>
+const ARCI = {
+  chainId:'0x4CEF52',chainIdDec:5042002,
+  name:'Arc Testnet',
+  rpc:'https://rpc.testnet.arc.network',
+  explorer:'https://explorer.testnet.arc.io',
+  faucet:'https://faucet.circle.com'
+};
+const ARCM = {
+  chainId:'0x13B2',chainIdDec:5042,
+  name:'Arc Mainnet',
+  rpc:'https://rpc.mainnet.arc.io',
+  explorer:'https://explorer.arc.io'
+};
+const BYTECODE = "608060405234801561000f575f80fd5b50610d288061001d5f395ff3fe608060405234801561000f575f80fd5b5060043610610106575f3560e01c8063a39344291161009e578063c1120b141161006e578063c1120b141461024e578063ccafb0dd14610264578063dd045ccb1461026c578063e1c87dd71461028c578063f3c870b0146102ab575f80fd5b8063a3934429146101cd578063a7a38f0b146101e2578063adbf26b31461023d578063bede10f514610246575f80fd5b80632ddbd13a116100d95780632ddbd13a1461018a578063865b85a91461019b5780638ad3c6f3146101a45780639507d39a146101ad575f80fd5b8063113cff741461010a5780631b998a641461012b5780631d831aea1461013457806325f18eb61461013c575b5f80fd5b61011361e70881565b60405161ffff90911681526020015b60405180910390f35b61011361a4b181565b610113600181565b61014f61014a366004610a91565b6102b3565b6040805160019590950b85526001600160401b0390931660208501526001600160a01b03909116918301919091526060820152608001610122565b5f545b604051908152602001610122565b6101136113b281565b61011361a86a81565b6101c06101bb366004610ac2565b61038f565b6040516101229190610b24565b6101e06101db366004610b38565b610442565b005b6101f56101f0366004610ac2565b6106ab565b6040805161ffff968716815295909416602086015260019290920b928401929092526001600160401b0390911660608301526001600160a01b0316608082015260a001610122565b61011361210581565b610113600a81565b610256610708565b604051610122929190610b81565b610113603881565b61027f61027a366004610ac2565b610896565b6040516101229190610be9565b61018d61029a366004610c36565b60016020525f908152604090205481565b610113608981565b5f80548190819081905b8015610377575f806102d0600184610c77565b815481106102e0576102e0610c8a565b5f9182526020909120600290910201805490915061ffff89811691161480156103165750805461ffff8881166201000090920416145b156103645780546001808301546401000000008304820b92600160301b90046001600160401b0316916001600160a01b03909116906103559086610c77565b95509550955095505050610386565b508061036f81610c9e565b9150506102bd565b505f805f5f1993509350935093505b92959194509250565b6040805160a0810182525f808252602082018190529181018290526060810182905260808101919091525f82815481106103cb576103cb610c8a565b5f9182526020918290206040805160a081018252600293909302909101805461ffff808216855262010000820416948401949094526401000000008404600190810b92840192909252600160301b9093046001600160401b03166060830152909101546001600160a01b0316608082015292915050565b8161ffff168361ffff16036104945760405162461bcd60e51b815260206004820152601360248201527220b931a33637bb9d1039b0b6b29031b430b4b760691b60448201526064015b60405180910390fd5b61270f198160010b121580156104af57506127108160010b13155b6104fb5760405162461bcd60e51b815260206004820152601c60248201527f417263466c6f773a20737072656164206f7574206f662072616e676500000000604482015260640161048b565b6040805160a08101825261ffff80861682528481166020808401918252600186810b8587019081526001600160401b034281166060880190815233608089018181525f805480880182558180529a516002909b027f290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563810180549a5197519551909616600160301b026dffffffffffffffff00000000000019958c1664010000000002959095166dffffffffffffffffffff0000000019978c16620100000263ffffffff19909b169c909b169b909b17989098179490941697909717179055517f290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56490950180546001600160a01b03969096166001600160a01b0319909616959095179094559181529082905291822080549192909161063a908490610cb3565b90915550505f54339061064f90600190610c77565b6040805161ffff878116825286166020820152600185900b81830152426001600160401b0316606082015290517f7ba63643f87c91851c1518ef20c5981da46f34ba2d02430c922da186ef0c21809181900360800190a3505050565b5f81815481106106b9575f80fd5b5f9182526020909120600290910201805460019182015461ffff808316945062010000830416926401000000008304900b91600160301b90046001600160401b0316906001600160a01b031685565b610710610a5c565b610718610a5c565b6107256113b26001610a3e565b50506001600160401b0316825260010b82526107456113b2612105610a3e565b50506001600160401b031660208381019190915260019190910b908301526107706113b2600a610a3e565b50506001600160401b031660408381019190915260019190910b9083015261079c6113b261a4b1610a3e565b50506001600160401b031660608381019190915260019190910b908301526107c76113b26089610a3e565b50506001600160401b031660808381019190915260019190910b908301526107f36113b261a86a610a3e565b50506001600160401b031660a08381019190915260019190910b9083015261081e6113b26038610a3e565b50506001600160401b031660c08381019190915260019190910b9083015261084a6113b261e708610a3e565b50506001600160401b031660e083810191909152600191820b9084015261087390612105610a3e565b50506001600160401b03166101008381019190915260019190910b908301529091565b606060328211156108db5760405162461bcd60e51b815260206004820152600f60248201526e0417263466c6f773a206d617820353608c1b604482015260640161048b565b5f8054908184116108ec57836108ee565b815b9050806001600160401b0381111561090857610908610cc6565b60405190808252806020026020018201604052801561095f57816020015b6040805160a0810182525f808252602080830182905292820181905260608201819052608082015282525f199092019101816109265790505b5092505f5b81811015610a36575f81610979600186610c77565b6109839190610c77565b8154811061099357610993610c8a565b5f9182526020918290206040805160a081018252600293909302909101805461ffff808216855262010000820416948401949094526401000000008404600190810b92840192909252600160301b9093046001600160401b03166060830152909101546001600160a01b031660808201528451859083908110610a1857610a18610c8a565b60200260200101819052508080610a2e90610cda565b915050610964565b505050919050565b5f805f80610a4c86866102b3565b9299919850965090945092505050565b6040518061012001604052806009906020820280368337509192915050565b803561ffff81168114610a8c575f80fd5b919050565b5f8060408385031215610aa2575f80fd5b610aab83610a7b565b9150610ab960208401610a7b565b90509250929050565b5f60208284031215610ad2575f80fd5b5035919050565b805161ffff90811683526020808301519091169083015260408082015160010b908301526060808201516001600160401b0316908301526080908101516001600160a01b0316910152565b60a08101610b328284610ad9565b92915050565b5f805f60608486031215610b4a575f80fd5b610b5384610a7b565b9250610b6160208501610a7b565b915060408401358060010b8114610b76575f80fd5b809150509250925092565b610240810181845f5b6009811015610bac578151600190810b84526020938401939092019101610b8a565b5050506101208201835f5b6009811015610bdf5781516001600160401b0316835260209283019290910190600101610bb7565b5050509392505050565b602080825282518282018190525f9190848201906040850190845b81811015610c2a57610c17838551610ad9565b9284019260a09290920191600101610c04565b50909695505050505050565b5f60208284031215610c46575f80fd5b81356001600160a01b0381168114610c5c575f80fd5b9392505050565b634e487b7160e01b5f52601160045260245ffd5b81810381811115610b3257610b32610c63565b634e487b7160e01b5f52603260045260245ffd5b5f81610cac57610cac610c63565b505f190190565b80820180821115610b3257610b32610c63565b634e487b7160e01b5f52604160045260245ffd5b5f60018201610ceb57610ceb610c63565b506001019056fea2646970667358221220f2330c6be8eaf7ebda6a6be1f91b3b7749837985bb86fe4d04c6166b42beb48e64736f6c63430008140033";
+const ABI = [{"anonymous": false, "inputs": [{"indexed": true, "internalType": "uint256", "name": "idx", "type": "uint256"}, {"indexed": false, "internalType": "uint16", "name": "fromChain", "type": "uint16"}, {"indexed": false, "internalType": "uint16", "name": "toChain", "type": "uint16"}, {"indexed": false, "internalType": "int16", "name": "spreadBps", "type": "int16"}, {"indexed": false, "internalType": "uint64", "name": "timestamp", "type": "uint64"}, {"indexed": true, "internalType": "address", "name": "reporter", "type": "address"}], "name": "ObservationRecorded", "type": "event"}, {"inputs": [], "name": "CHAIN_ARBITRUM", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "CHAIN_ARC", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "CHAIN_AVALANCHE", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "CHAIN_BASE", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "CHAIN_BNB", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "CHAIN_ETHEREUM", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "CHAIN_LINEA", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "CHAIN_OPTIMISM", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "CHAIN_POLYGON", "outputs": [{"internalType": "uint16", "name": "", "type": "uint16"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "uint256", "name": "i", "type": "uint256"}], "name": "get", "outputs": [{"components": [{"internalType": "uint16", "name": "fromChain", "type": "uint16"}, {"internalType": "uint16", "name": "toChain", "type": "uint16"}, {"internalType": "int16", "name": "spreadBps", "type": "int16"}, {"internalType": "uint64", "name": "timestamp", "type": "uint64"}, {"internalType": "address", "name": "reporter", "type": "address"}], "internalType": "struct ArcFlow.Observation", "name": "", "type": "tuple"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "name": "history", "outputs": [{"internalType": "uint16", "name": "fromChain", "type": "uint16"}, {"internalType": "uint16", "name": "toChain", "type": "uint16"}, {"internalType": "int16", "name": "spreadBps", "type": "int16"}, {"internalType": "uint64", "name": "timestamp", "type": "uint64"}, {"internalType": "address", "name": "reporter", "type": "address"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "uint256", "name": "n", "type": "uint256"}], "name": "latestN", "outputs": [{"components": [{"internalType": "uint16", "name": "fromChain", "type": "uint16"}, {"internalType": "uint16", "name": "toChain", "type": "uint16"}, {"internalType": "int16", "name": "spreadBps", "type": "int16"}, {"internalType": "uint64", "name": "timestamp", "type": "uint64"}, {"internalType": "address", "name": "reporter", "type": "address"}], "internalType": "struct ArcFlow.Observation[]", "name": "out", "type": "tuple[]"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "uint16", "name": "fromChain", "type": "uint16"}, {"internalType": "uint16", "name": "toChain", "type": "uint16"}], "name": "latestPair", "outputs": [{"internalType": "int16", "name": "spreadBps", "type": "int16"}, {"internalType": "uint64", "name": "timestamp", "type": "uint64"}, {"internalType": "address", "name": "reporter", "type": "address"}, {"internalType": "uint256", "name": "idx", "type": "uint256"}], "stateMutability": "view", "type": "function"}, {"inputs": [{"internalType": "uint16", "name": "fromChain", "type": "uint16"}, {"internalType": "uint16", "name": "toChain", "type": "uint16"}, {"internalType": "int16", "name": "spreadBps", "type": "int16"}], "name": "record", "outputs": [], "stateMutability": "nonpayable", "type": "function"}, {"inputs": [{"internalType": "address", "name": "", "type": "address"}], "name": "reporterCount", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "snapshot9", "outputs": [{"internalType": "int16[9]", "name": "spreads", "type": "int16[9]"}, {"internalType": "uint64[9]", "name": "timestamps", "type": "uint64[9]"}], "stateMutability": "view", "type": "function"}, {"inputs": [], "name": "total", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"}];
+
+const $ = id => document.getElementById(id);
+const log = (msg, cls='') => {
+  const t = new Date().toISOString().slice(11,19);
+  $('log').innerHTML += `<div class="${cls}">[${t}] ${msg}</div>`;
+  $('log').scrollTop = $('log').scrollHeight;
+};
+const setStep = (n, state, txt, hint='') => {
+  const d = $('d'+n), s = $('s'+n);
+  d.className = 'dot ' + state;
+  d.textContent = state==='ok'?'✓':state==='err'?'✗':state==='now'?'…':n;
+  s.innerHTML = txt + (hint?`<small>${hint}</small>`:'');
+};
+
+document.getElementById('bcLen').textContent = (BYTECODE.length/2).toLocaleString() + ' bytes';
+
+let provider, signer, account;
+
+async function connect() {
+  if (!window.ethereum) { alert('MetaMask 未检测到'); return; }
+  try {
+    const accs = await window.ethereum.request({method:'eth_requestAccounts'});
+    account = accs[0];
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    log('连接成功: ' + account, 'ok');
+    setStep(1, 'ok', `已连接 ${account.slice(0,6)}…${account.slice(-4)}`);
+    $('btnConnect').disabled = true;
+    $('btnAddNet').disabled = false;
+    await refreshChain();
+    await refreshBal();
+  } catch(e) { log('连接失败: ' + (e.message||e), 'err'); }
+}
+
+async function refreshChain() {
+  const cid = await window.ethereum.request({method:'eth_chainId'});
+  const dec = parseInt(cid, 16);
+  log('当前链 ID: ' + dec);
+  if (dec === ARCI.chainIdDec) {
+    setStep(3, 'ok', '已在 Arc Testnet');
+    $('btnSwitch').disabled = true;
+    $('btnFaucet').disabled = false;
+    $('btnDeploy').disabled = false;
+  } else {
+    setStep(3, 'now', '当前链: ' + dec, '需要切到 ' + ARCI.chainIdDec);
+    $('btnSwitch').disabled = false;
+  }
+}
+
+async function refreshBal() {
+  try {
+    const bal = await provider.getBalance(account);
+    const usdc = parseFloat(ethers.formatUnits(bal, 18));
+    log('USDC 余额: ' + usdc.toFixed(4));
+    if (usdc >= 0.05) {
+      setStep(4, 'ok', `余额 ${usdc.toFixed(4)} USDC`, '够部署 + 留余量');
+      $('btnFaucet').disabled = true;
+      $('btnDeploy').disabled = false;
+    } else {
+      setStep(4, 'err', `余额 ${usdc.toFixed(4)} USDC`, '至少需要 ~0.05 USDC，先去领水');
+      $('btnFaucet').disabled = false;
+      $('btnDeploy').disabled = true;
+    }
+    await gasEst();
+  } catch(e) { log('查余额失败: ' + e.message, 'err'); }
+}
+
+async function addNet() {
+  // MM 不允许两个指向「同一 RPC endpoint」的网络。错误网络(5054426)已占了 rpc.testnet.arc.network，
+  // 所以直接用 canonical RPC 加 5042002 会被拒（"same RPC endpoint"）。
+  // 解法：用「不同的 RPC 字符串」重新加一个网络——服务端忽略路径/参数，仍返回正确的 chainId 5042002。
+  const variants = [
+    {rpc: ARCI.rpc,            tag: 'canonical'},
+    {rpc: ARCI.rpc + '/',     tag: 'trailing-slash'},
+    {rpc: ARCI.rpc + '/?n=arc', tag: 'query-param'}
+  ];
+  for (const v of variants) {
+    try {
+      setStep(2, 'now', 'MetaMask 确认中… (' + v.tag + ')');
+      await window.ethereum.request({method:'wallet_addEthereumChain', params:[{
+        chainId: ARCI.chainId, chainName: ARCI.name,
+        nativeCurrency:{name:'USDC', symbol:'USDC', decimals:18},
+        rpcUrls:[v.rpc], blockExplorerUrls:[ARCI.explorer]
+      }]});
+      window.__NET_RPC = v.rpc;
+      setStep(2, 'ok', 'Arc Testnet 已添加（RPC: ' + v.rpc + '）');
+      log('网络添加成功 · ' + v.tag, 'ok');
+      await refreshChain();
+      return;
+    } catch(e) {
+      const msg = ((e && (e.message||String(e))) || '').split('\n')[0];
+      if (/same rpc|same endpoint|duplicate|already|exists/i.test(msg)) {
+        log('变种 ' + v.tag + ' 被拒：' + msg, 'warn');
+        continue;
+      }
+      setStep(2,'err','添加失败：' + msg);
+      log('添加失败：' + msg, 'err');
+      log('兜底：去 MM 设置 → 网络 → 删除链 ID 5054426 的 Arc Testnet，再点 ②', 'warn');
+      return;
+    }
+  }
+  setStep(2,'err','所有 RPC 变种均因「同 RPC 冲突」被拒');
+  log('无法自动添加：MM 不允许两个指向同 RPC 的网络。请到 MM 设置→网络 删除错误网络(5054426)后重试。', 'warn');
+}
+
+async function switchNet() {
+  try {
+    setStep(3, 'now', '请在 MetaMask 确认切链');
+    await window.ethereum.request({method:'wallet_switchEthereumChain', params:[{chainId: ARCI.chainId}]});
+    setStep(3, 'ok', '已切到 Arc Testnet');
+    log('切链成功', 'ok');
+    await refreshBal();
+  } catch(e) { setStep(3,'err', '切链失败: ' + (e.message||e)); log('切链失败','err'); }
+}
+
+async function openFaucet() {
+  window.open(ARCI.faucet + '?network=arc_testnet', '_blank');
+  log('已打开 faucet.circle.com，请在新标签页完成领取');
+}
+
+async function gasEst() {
+  try {
+    const factory = new ethers.ContractFactory(ABI, BYTECODE, signer);
+    const est = await factory.getDeployTransaction();
+    const gas = await provider.estimateGas({data: est.data});
+    const fee = await provider.getFeeData();
+    const cost = Number(gas * fee.gasPrice) / 1e18;
+    $('gasEst').textContent = `~${gas.toLocaleString()} gas · ~${cost.toFixed(4)} USDC`;
+  } catch(e) { $('gasEst').textContent = '估算失败'; }
+}
+
+async function deploy() {
+  try {
+    setStep(5, 'now', 'MetaMask 弹窗中，等待确认部署');
+    $('btnDeploy').disabled = true;
+    log('开始部署…');
+    const factory = new ethers.ContractFactory(ABI, BYTECODE, signer);
+    const contract = await factory.deploy();
+    log('已发送交易 txHash=' + contract.deploymentTransaction().hash);
+    await contract.waitForDeployment();
+    const addr = await contract.getAddress();
+    setStep(5, 'ok', `部署成功 ${addr.slice(0,8)}…${addr.slice(-6)}`);
+    log('合约地址: ' + addr, 'ok');
+    $('resultCard').style.display = 'block';
+    $('rAddr').textContent = addr;
+    $('rTx').textContent = contract.deploymentTransaction().hash;
+    $('rLink').href = ARCI.explorer + '/address/' + addr;
+    $('rLink').textContent = ARCI.explorer + '/address/' + addr;
+    // 暴露给 CDP 读取
+    window.__DEPLOY_RESULT = {address: addr, txHash: contract.deploymentTransaction().hash, explorer: ARCI.explorer};
+  } catch(e) {
+    setStep(5, 'err', '部署失败: ' + (e.message||e));
+    log('部署失败: ' + (e.message||e), 'err');
+    $('btnDeploy').disabled = false;
+  }
+}
+
+$('btnConnect').onclick = connect;
+$('btnAddNet').onclick = addNet;
+$('btnSwitch').onclick = switchNet;
+$('btnFaucet').onclick = openFaucet;
+$('btnDeploy').onclick = deploy;
+
+window.ethereum?.on('chainChanged', () => location.reload());
+window.ethereum?.on('accountsChanged', accs => accs.length? location.reload() : location.reload());
+</script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ArcFlow — Cross-chain USDC spread ledger</title>
+  <meta name="description" content="On-chain log of cross-chain USDC price spreads and payment costs, written to Arc mainnet." />
+  <style>
+    :root {
+      --bg: #0a0a0a; --fg: #fafafa; --muted: #888; --accent: #5eead4;
+      --row: #141414; --border: #1f1f1f; --pos: #fb923c; --neg: #5eead4;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 16px; background: var(--bg); color: var(--fg); font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial; }
+    .wrap { max-width: 920px; margin: 0 auto; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+    h1 span { color: var(--accent); }
+    .meta { color: var(--muted); font-size: 13px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 8px; border-radius: 4px; background: var(--row); color: var(--muted); }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 32px; }
+    .card { background: var(--row); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+    .card h3 { margin: 0 0 4px; font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+    .card .val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .card .val.pos { color: var(--pos); }
+    .card .val.neg { color: var(--neg); }
+    .card .ts { color: var(--muted); font-size: 11px; margin-top: 4px; }
+    h2 { font-size: 14px; font-weight: 600; margin: 24px 0 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px; }
+    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+    td.right { text-align: right; }
+    .empty { color: var(--muted); padding: 24px; text-align: center; }
+    footer { margin-top: 32px; color: var(--muted); font-size: 12px; text-align: center; }
+    .pill { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; padding: 1px 6px; border-radius: 3px; background: #1f1f1f; color: var(--accent); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Arc<span>Flow</span> — cross-chain USDC spread ledger</h1>
+    <div class="status"><span class="dot"></span><span id="net">Arc mainnet</span></div>
+  </header>
+
+  <p class="meta">
+    On-chain observations written by anyone, read by anyone.
+    Contract: <a href="#" id="contractLink">view on Arcscan</a>.
+    Source: <a href="https://github.com/ooii166/Lightning" target="_blank" rel="noopener">github.com/ooii166/Lightning</a>.
+  </p>
+
+  <h2>Latest spread (basis points, signed)</h2>
+  <div class="grid" id="snapshot">
+    <div class="empty">Loading…</div>
+  </div>
+
+  <h2>Recent observations</h2>
+  <table>
+    <thead><tr><th>#</th><th>Pair</th><th class="right">Spread (bps)</th><th>Reporter</th><th class="right">Time (UTC)</th></tr></thead>
+    <tbody id="history">
+      <tr><td colspan="5" class="empty">Loading…</td></tr>
+    </tbody>
+  </table>
+
+  <footer>
+    Read-only dashboard. Anyone can publish a new observation by calling <span class="pill">record()</span> on the contract.
+    Cost: native USDC gas on Arc.
+  </footer>
+</div>
+
+<!-- viem via CDN, gives us proper ABI decoding -->
+<script type="module">
+  import { createPublicClient, http, decodeFunctionData, getContract } from 'https://esm.sh/viem@2';
+  import * as chains from 'https://esm.sh/viem@2/chains';
+
+  // ── Config ───────────────────────────────────────────────
+  // Deployed on Arc Testnet (Chain ID 5042002) — same bytecode deploys to mainnet unchanged.
+  const CONTRACT = '0xf004c40f0b8204c21991309A808dA2ee4895B9Eb';
+  const RPC = 'https://rpc.testnet.arc.network';
+
+  // Minimal Arc Testnet descriptor (viem doesn't ship one yet as of this writing).
+  const arc = {
+    id: 5042002,
+    name: 'Arc Testnet',
+    network: 'arc-testnet',
+    nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
+    rpcUrls: { default: { http: [RPC] } },
+    blockExplorers: { default: { name: 'Arc Testnet Explorer', url: 'https://explorer.testnet.arc.io' } },
+  };
+
+  const client = createPublicClient({ chain: arc, transport: http(RPC) });
+
+  // ABI (subset)
+  const ABI = [
+    { type:'function', name:'total',    stateMutability:'view', inputs:[], outputs:[{type:'uint256'}] },
+    { type:'function', name:'snapshot9', stateMutability:'view', inputs:[],
+      outputs: [
+        {type:'int16[9]', name:'spreads'},
+        {type:'uint64[9]', name:'timestamps'}
+      ] },
+    { type:'function', name:'latestN',  stateMutability:'view', inputs:[{type:'uint256'}], outputs:[{type:'tuple[]', components:[
+      {type:'uint16'},{type:'uint16'},{type:'int16'},{type:'uint64'},{type:'address'}
+    ]}] },
+    { type:'function', name:'get', stateMutability:'view', inputs:[{type:'uint256'}], outputs:[{type:'tuple', components:[
+      {type:'uint16'},{type:'uint16'},{type:'int16'},{type:'uint64'},{type:'address'}
+    ]}] },
+  ];
+
+  const contract = getContract({ address: CONTRACT, abi: ABI, client });
+
+  const CHAIN_NAME = { 5042:'Arc', 1:'Ethereum', 8453:'Base', 10:'Optimism',
+                       42161:'Arbitrum', 137:'Polygon', 43114:'Avalanche',
+                       56:'BNB', 59144:'Linea' };
+
+  const fmtBps = (b) => (Number(b) / 100).toFixed(2) + '%';
+  const fmtTs  = (t) => t ? new Date(Number(t)*1000).toISOString().replace('T',' ').slice(0,19)+' UTC' : '—';
+  const shortA = (a) => a ? a.slice(0,6)+'…'+a.slice(-4) : '—';
+
+  async function main() {
+    document.getElementById('contractLink').href = `https://explorer.arc.io/address/${CONTRACT}`;
+    if (CONTRACT.startsWith('0xREPLACE')) {
+      document.getElementById('snapshot').innerHTML =
+        '<div class="empty">Contract not deployed yet — paste address into <code>ARCFLOW_CONTRACT</code>.</div>';
+      return;
+    }
+    try {
+      const total = Number(await contract.read.total());
+
+      // Snapshot — 9 pairs
+      const s = await contract.read.snapshot9();
+      const spreads = s[0];   // int16[9]
+      const times = s[1];     // uint64[9]
+      const pairs = [
+        ['Arc','Ethereum'], ['Arc','Base'], ['Arc','Optimism'], ['Arc','Arbitrum'],
+        ['Arc','Polygon'], ['Arc','Avalanche'], ['Arc','BNB'], ['Arc','Linea'],
+        ['Ethereum','Base'],
+      ];
+      const cards = pairs.map((p, i) => {
+        const spread = Number(spreads[i]);
+        const ts = Number(times[i]);
+        const cls = spread > 0 ? 'pos' : (spread < 0 ? 'neg' : '');
+        return `
+          <div class="card">
+            <h3>${p[0]} → ${p[1]}</h3>
+            <div class="val ${cls}">${spread === 0 ? '—' : fmtBps(spread)}</div>
+            <div class="ts">${fmtTs(ts)}</div>
+          </div>`;
+      }).join('');
+      document.getElementById('snapshot').innerHTML = cards;
+
+      // History — latest 20
+      const take = Math.min(20, total);
+      const rows = [];
+      for (let i = 0; i < take; i++) {
+        const idx = total - 1 - i;
+        const o = await contract.read.get([BigInt(idx)]);
+        rows.push({ idx, ...o });
+      }
+      const tbody = document.getElementById('history');
+      tbody.innerHTML = rows.length === 0
+        ? '<tr><td colspan="5" class="empty">No observations yet. Be the first.</td></tr>'
+        : rows.map(r => {
+            const cls = Number(r[2]) > 0 ? 'pos' : (Number(r[2]) < 0 ? 'neg' : '');
+            return `<tr>
+              <td>${r.idx}</td>
+              <td>${CHAIN_NAME[Number(r[0])]||r[0]} → ${CHAIN_NAME[Number(r[1])]||r[1]}</td>
+              <td class="right ${cls}">${fmtBps(r[2])}</td>
+              <td>${shortA(r[4])}</td>
+              <td class="right">${fmtTs(r[3])}</td>
+            </tr>`;
+          }).join('');
+    } catch (e) {
+      document.getElementById('snapshot').innerHTML =
+        `<div class="empty">RPC error: ${e.message}</div>`;
+    }
+  }
+
+  main().catch(e => {
+    document.getElementById('snapshot').innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+    console.error(e);
+  });
+</script>
+</body>
+</html>
