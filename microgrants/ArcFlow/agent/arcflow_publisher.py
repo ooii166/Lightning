@@ -332,6 +332,7 @@ def main():
         return 0
 
     written = 0
+    failed = 0
     next_nonce = None
     for frm, to, bps, prev in pending:
         f_id, t_id = CHAINS[frm]['id'], CHAINS[to]['id']
@@ -341,19 +342,29 @@ def main():
             written += 1
             continue
         try:
-            txh = send_record(priv, f_id, t_id, bps, gas_limit, max_fee, priority, next_nonce)
-            print('  %-24s bps=%+6d  tx=%s' % (label, bps, txh))
-            written += 1
+            # Read the nonce ONCE, before the first broadcast, then advance it
+            # locally. Reading it *after* a broadcast and incrementing counts the
+            # transaction we just sent a second time, which opens a nonce gap and
+            # makes every later write in the same run fail with "nonce too high".
             if next_nonce is None:
                 next_nonce = int(rpc('eth_getTransactionCount',
                                      ['0x%040x' % priv_addr_int(priv), 'pending']), 16)
+            txh = send_record(priv, f_id, t_id, bps, gas_limit, max_fee, priority, next_nonce)
+            print('  %-24s bps=%+6d  tx=%s' % (label, bps, txh))
+            written += 1
             next_nonce += 1
         except Exception as e:
+            failed += 1
             print('  %-24s bps=%+6d  ERROR: %s' % (label, bps, e), file=sys.stderr)
 
     print()
-    print('[done] %d observation(s) %s' % (written, 'previewed' if DRY_RUN else 'written'))
-    return 0
+    print('[done] %d observation(s) %s%s'
+          % (written, 'previewed' if DRY_RUN else 'written',
+             (', %d FAILED' % failed) if failed else ''))
+    # A run that silently drops writes would report success while the ledger stays
+    # behind, so surface it as a real failure. Nothing is lost: a pair whose write
+    # failed still has no on-chain value, so the next run picks it up again.
+    return 1 if failed else 0
 
 
 if __name__ == '__main__':

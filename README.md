@@ -20,7 +20,7 @@ observation, anyone can read it. Deployed and running on **Arc mainnet (Chain ID
 | **Chain ID** | 5042 |
 | **RPC** | `https://rpc.mainnet.arc.io` |
 | **Explorer** | https://explorer.arc.io |
-| **Bytecode** | 3,368 bytes |
+| **Runtime bytecode** | 6,736 bytes (via `eth_getCode`; compiled bytecode before deploy is ~3,368 bytes excluding the metadata hash and constructor argument) |
 
 ### Live dashboard
 
