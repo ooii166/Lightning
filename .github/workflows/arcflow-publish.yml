@@ -28,7 +28,9 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Each write is confirmed in a block before the next one is built, so a run
+    # can legitimately spend a couple of minutes waiting on Arc.
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +42,13 @@ jobs:
       - name: Verify the signer against known vectors
         working-directory: microgrants/ArcFlow
         run: python agent/verify_signer.py
+
+      # Offline, so it cannot fail because of a network hiccup: it pins the two
+      # write-path failures seen in production (a nonce already held by an earlier
+      # run's transaction, and a transaction the node accepts but never includes).
+      - name: Run the publisher regression tests
+        working-directory: microgrants/ArcFlow
+        run: python agent/test_publisher.py
 
       - name: Publish observations
         working-directory: microgrants/ArcFlow/agent

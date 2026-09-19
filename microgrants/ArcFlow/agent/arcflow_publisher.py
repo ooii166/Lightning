@@ -30,6 +30,10 @@ run, and aborts entirely below ARCFLOW_MIN_BALANCE. Because the previous value i
 read from chain, the change detection needs no local state file and works
 identically on a laptop, a server or a GitHub Actions runner.
 
+Each write is confirmed in a block before it is counted, and a run that fails to
+land a write exits non-zero rather than reporting a success the ledger does not
+actually contain.
+
 Configuration (environment)
 ---------------------------
   ARCFLOW_PK            hex private key, no 0x. If unset -> dry run, nothing sent.
@@ -270,6 +274,102 @@ def priv_addr_int(priv):
     return a
 
 
+# Errors that mean "something already holds this nonce in the mempool" rather than
+# a genuine fault. These are worth one retry at a higher fee.
+_NONCE_CONFLICT_MARKERS = ('underpriced', 'nonce too low', 'already known',
+                           'replacement', 'already exists')
+
+# How long to wait for a broadcast transaction to be included in a block.
+RECEIPT_TIMEOUT = 60
+
+
+def _is_nonce_conflict(exc):
+    msg = str(exc).lower()
+    return any(m in msg for m in _NONCE_CONFLICT_MARKERS)
+
+
+def wait_for_receipt(tx_hash, timeout=RECEIPT_TIMEOUT):
+    """
+    Wait until `tx_hash` is included in a block.
+
+    Returns 'mined', 'reverted', or 'pending' (still not included when the
+    deadline passed).
+
+    A node hands back a transaction hash as soon as it accepts the transaction
+    into its mempool, which is not a promise of inclusion: if something else
+    already holds that nonce, the accepted transaction can be dropped instead of
+    mined. Counting a hash as a write would leave the ledger quietly behind while
+    the run reports success, so every write is confirmed before it is counted.
+    """
+    deadline = time.time() + timeout
+    while True:
+        try:
+            rc = rpc('eth_getTransactionReceipt', [tx_hash])
+        except Exception:
+            rc = None
+        if rc:
+            return 'mined' if rc.get('status') == '0x1' else 'reverted'
+        if time.time() >= deadline:
+            return 'pending'
+        time.sleep(3)
+
+
+def publish_one(priv, label, f_id, t_id, bps, gas_limit, max_fee, priority):
+    """
+    Broadcast one observation and confirm it is actually in a block.
+
+    Returns the transaction hash on success, or None after reporting the reason
+    for failure.
+
+    A write can lose the race for its nonce in two ways: the node rejects it
+    outright because an earlier run's transaction still holds the slot, or it
+    accepts the transaction and then never includes it. Both get one retry at a
+    higher fee — and crucially at the *same* nonce, so a replacement can never
+    leave a gap behind it. Only one transaction can ever be included for a given
+    nonce, so retrying this way is safe even if the first one is merely slow.
+    """
+    # Read the nonce immediately before broadcasting instead of tracking a counter
+    # across records. `pending` yields the first *unused* nonce, which is also the
+    # right one when an earlier run left a gap: filling that gap is what releases
+    # anything queued behind it. The previous write is confirmed before this point,
+    # so the value cannot be stale.
+    nonce = int(rpc('eth_getTransactionCount',
+                    ['0x%040x' % priv_addr_int(priv), 'pending']), 16)
+    last_error = None
+    for attempt in (0, 1):
+        try:
+            # Nodes replace a pooled transaction only when the new fee clears a
+            # threshold (10% by default), so the retry has to jump, not nudge.
+            fee = max_fee if attempt == 0 else int(max_fee * 1.35)
+            txh = send_record(priv, f_id, t_id, bps, gas_limit, fee, priority, nonce)
+        except Exception as e:
+            if attempt == 0 and _is_nonce_conflict(e):
+                print('  %-24s nonce %d is held by an earlier transaction — '
+                      'retrying with a higher fee' % (label, nonce), file=sys.stderr)
+                continue
+            print('  %-24s bps=%+6d  ERROR: %s' % (label, bps, e), file=sys.stderr)
+            return None
+
+        outcome = wait_for_receipt(txh)
+        if outcome == 'mined':
+            return txh
+        if outcome == 'reverted':
+            # The nonce is spent either way, so a retry could only burn more gas on
+            # the same guaranteed failure.
+            print('  %-24s bps=%+6d  tx=%s  ERROR: the transaction reverted'
+                  % (label, bps, txh), file=sys.stderr)
+            return None
+
+        last_error = 'tx %s was not included within %d s' % (txh, RECEIPT_TIMEOUT)
+        if attempt == 0:
+            print('  %-24s tx=%s not included yet — retrying with a higher fee'
+                  % (label, txh), file=sys.stderr)
+            continue
+
+    print('  %-24s bps=%+6d  ERROR: %s' % (label, bps, last_error), file=sys.stderr)
+    return None
+
+
 def main():
     if CONTRACT.startswith('0xREPLACE'):
         print('[abort] ARCFLOW_CONTRACT is not set to a real address', file=sys.stderr)
@@ -285,7 +385,7 @@ def main():
 
     # Balance guard — never let a runaway schedule drain the wallet.
     if not DRY_RUN:
-        bal_wei = int(rpc('eth_getBalance', [private_key_to_address(priv), 'latest']), 16)
+        bal_wei = int(rpc('eth_getBalance', [addr, 'latest']), 16)
         bal = bal_wei / 1e18
         print('balance  : %.6f USDC' % bal)
         if bal < MIN_BALANCE:
@@ -297,6 +397,14 @@ def main():
         priority = 10 ** 9
         gas_limit = GAS_LIMIT_FALLBACK
         print('gas price: %.2f Gwei -> maxFee %.2f Gwei' % (gas_price / 1e9, max_fee / 1e9))
+
+        # A pooled transaction that no block has consumed yet means an earlier run
+        # stopped halfway; the first write of this run will clear it.
+        n_latest = int(rpc('eth_getTransactionCount', [addr, 'latest']), 16)
+        n_pending = int(rpc('eth_getTransactionCount', [addr, 'pending']), 16)
+        if n_pending > n_latest:
+            print('mempool  : %d transaction(s) from an earlier run still waiting'
+                  % (n_pending - n_latest))
     else:
         max_fee = priority = gas_limit = 0
 
@@ -333,7 +441,6 @@ def main():
 
     written = 0
     failed = 0
-    next_nonce = None
     for frm, to, bps, prev in pending:
         f_id, t_id = CHAINS[frm]['id'], CHAINS[to]['id']
         label = '%s -> %s' % (frm, to)
@@ -341,21 +448,12 @@ def main():
             print('  [dry-run] %-24s bps=%+6d (was %s)' % (label, bps, prev))
             written += 1
             continue
-        try:
-            # Read the nonce ONCE, before the first broadcast, then advance it
-            # locally. Reading it *after* a broadcast and incrementing counts the
-            # transaction we just sent a second time, which opens a nonce gap and
-            # makes every later write in the same run fail with "nonce too high".
-            if next_nonce is None:
-                next_nonce = int(rpc('eth_getTransactionCount',
-                                     ['0x%040x' % priv_addr_int(priv), 'pending']), 16)
-            txh = send_record(priv, f_id, t_id, bps, gas_limit, max_fee, priority, next_nonce)
+        txh = publish_one(priv, label, f_id, t_id, bps, gas_limit, max_fee, priority)
+        if txh is None:
+            failed += 1
+        else:
             print('  %-24s bps=%+6d  tx=%s' % (label, bps, txh))
             written += 1
-            next_nonce += 1
-        except Exception as e:
-            failed += 1
-            print('  %-24s bps=%+6d  ERROR: %s' % (label, bps, e), file=sys.stderr)
 
     print()
     print('[done] %d observation(s) %s%s'

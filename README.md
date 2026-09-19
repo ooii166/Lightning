@@ -45,6 +45,9 @@ microgrants/ArcFlow/
 ├── contracts/ArcFlow.sol          # Solidity 0.8.20, no external deps
 ├── web/index.html                 # public read-only dashboard
 ├── agent/arcflow_publisher.py     # automated recorder (public price APIs -> Arc)
+├── agent/arcflow_signer.py        # dependency-free EIP-1559 signer
+├── agent/verify_signer.py         # signer checked against ethers.js, byte for byte
+├── agent/test_publisher.py        # offline tests for the write path
 ├── deploy/                        # compile + deploy helpers
 ├── build/                         # abi.json + bytecode.json
 └── docs/microgrants.md            # application narrative

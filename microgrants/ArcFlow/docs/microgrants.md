@@ -41,8 +41,8 @@ These three together are exactly the conditions under which a shared, on-chain c
 
 ## What makes it real
 
-- **Live contract on Arc mainnet (Chain ID 5042).** Deployed via self-hosted deployer + MetaMask. Public address is part of this submission (filled after on-chain funding).
-- **Live data pipeline.** The `agent/arcflow_publisher.py` script calls the OKX public API, computes the spread, and signs a transaction to the contract every 10 minutes. Already integrated into my daily ops.
+- **Live contract on Arc mainnet (Chain ID 5042).** Deployed via self-hosted deployer + MetaMask. The address is public and independently verifiable: [`0xf004c40f0b8204c21991309A808dA2ee4895B9Eb`](https://explorer.arc.io/address/0xf004c40f0b8204c21991309A808dA2ee4895B9Eb) — and `total()` on that contract is the honest measure of how much data the ledger holds.
+- **Live data pipeline.** The `agent/arcflow_publisher.py` script reads real USDC prices from the public DexScreener API, computes each pair's spread against Arc's native peg, and signs a transaction to the contract hourly from a GitHub Actions workflow. Each write is confirmed in a block before it is counted, so a run that fails to land a record reports failure instead of success. No API key, no backend, standard library only.
 - **Live public dashboard.** The web dashboard in `/web/` reads from Arc RPC and renders the latest observation for every pair. No JS framework, no build step — a single static file hosted on GitHub Pages.
 - **Builder profile verified.** My Arc House profile links to my LinkedIn (`/in/...47641a131/`), X (`@ChengmiaoW74762`), this GitHub, and the Lightning repo.
 

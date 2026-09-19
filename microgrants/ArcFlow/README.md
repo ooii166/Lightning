@@ -41,6 +41,7 @@ ArcFlow/
 ├── agent/arcflow_publisher.py     # recorder: reads real DEX prices, writes to Arc
 ├── agent/arcflow_signer.py        # dependency-free EIP-1559 signer
 ├── agent/verify_signer.py         # asserts the signer matches ethers.js byte-for-byte
+├── agent/test_publisher.py        # offline tests for the write path (no network, no key)
 ├── build/                         # abi.json + bytecode.json
 └── docs/microgrants.md            # application narrative
 ```
@@ -108,6 +109,28 @@ ARCFLOW_PK=<hex> python arcflow_publisher.py       # publish
 Every run prints the per-chain prices it observed and the basis-point spread it
 computed, so the numbers in the ledger can be reproduced from the same public
 sources.
+
+### Writes are confirmed, not assumed
+
+A node returns a transaction hash as soon as it accepts a transaction into its
+mempool, which is not a promise that the transaction will ever be included. The
+publisher therefore waits for each write to appear in a block before counting it,
+and only then builds the next one — so a record that silently failed to land is
+reported as a failure (non-zero exit) rather than as a success the ledger does not
+contain. The hourly job turns red in that case, which is the honest signal.
+
+Because consecutive records share a wallet, the nonce is read from the chain
+immediately before each broadcast rather than tracked locally. `pending` returns
+the first *unused* nonce, which is also the correct choice when an earlier run left
+a gap behind — filling that gap is what releases anything queued behind it. If a
+nonce is already held by a transaction from an earlier run, the write is retried
+once at the **same** nonce with a fee 35% higher: nodes only replace a pooled
+transaction when the new fee clears a threshold (10% by default), so the retry has
+to jump rather than nudge. Retrying at the same nonce can never open a gap, since
+only one transaction can be included per nonce.
+
+These paths are covered by `agent/test_publisher.py`, which runs offline in CI
+before the publisher does.
 
 ---
 
