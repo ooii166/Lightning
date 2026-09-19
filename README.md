@@ -20,7 +20,7 @@ observation, anyone can read it. Deployed and running on **Arc mainnet (Chain ID
 | **Chain ID** | 5042 |
 | **RPC** | `https://rpc.mainnet.arc.io` |
 | **Explorer** | https://explorer.arc.io |
-| **Runtime bytecode** | 6,736 bytes (via `eth_getCode`; compiled bytecode before deploy is ~3,368 bytes excluding the metadata hash and constructor argument) |
+| **Runtime bytecode** | 3,368 bytes. `eth_getCode` returns a 6,736-character hex string — that is 6,736 hex *characters*, and 2 characters are 1 byte, so the code is 3,368 bytes. The compiled creation bytecode in `build/bytecode.json` is 3,397 bytes (creation is always larger than runtime; it carries the constructor). |
 
 ### Live dashboard
 
