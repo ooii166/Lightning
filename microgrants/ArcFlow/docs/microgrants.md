@@ -7,11 +7,11 @@
 
 ## The project
 
-**ArcFlow** — an on-chain log that records the *real* cost of moving USDC across chains, written to Arc (deployed on Arc Testnet as a working proof-of-concept; mainnet deploy pending Circle GA).
+**ArcFlow** — an on-chain log that records the *real* cost of moving USDC across chains, written to Arc (code switched to Arc Mainnet, Chain ID 5042; live contract address pending on-chain funding).
 
 - **Repo:** https://github.com/ooii166/Lightning (the project lives under `/microgrants/ArcFlow/`)
-- **Live contract (testnet):** `0xf004c40f0b8204c21991309A808dA2ee4895B9Eb` — [explorer](https://explorer.testnet.arc.io/address/0xf004c40f0b8204c21991309A808dA2ee4895B9Eb) (Arc Testnet, Chain ID 5042002)
-- **Live web (testnet):** `https://ooii166.github.io/ArcFlow/`
+- **Live contract (mainnet):** pending — [explorer](https://explorer.arc.io) (Arc Mainnet, Chain ID 5042)
+- **Live web (mainnet):** `https://ooii166.github.io/Lightning/microgrants/ArcFlow/web/`
 
 ---
 
@@ -39,7 +39,7 @@ These three together are exactly the conditions under which a shared, on-chain c
 
 ## What makes it real
 
-- **Live mainnet contract.** Deployed via Remix + MetaMask to Arc mainnet (Chain ID 5042). Public address is part of this submission.
+- **Live contract on Arc mainnet (Chain ID 5042).** Deployed via self-hosted deployer + MetaMask. Public address is part of this submission (filled after on-chain funding).
 - **Live data pipeline.** The `agent/arcflow_publisher.py` script calls the OKX public API, computes the spread, and signs a transaction to the contract every 10 minutes. Already integrated into my daily ops.
 - **Live public dashboard.** The web dashboard in `/web/` reads from Arc RPC and renders the latest observation for every pair. No JS framework, no build step — a single static file hosted on GitHub Pages.
 - **Builder profile verified.** My Arc House profile links to my LinkedIn (`/in/...47641a131/`), X (`@ChengmiaoW74762`), this GitHub, and the Lightning repo.

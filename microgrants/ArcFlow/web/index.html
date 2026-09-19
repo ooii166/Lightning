@@ -78,18 +78,18 @@
   import * as chains from 'https://esm.sh/viem@2/chains';
 
   // ── Config ───────────────────────────────────────────────
-  // Deployed on Arc Testnet (Chain ID 5042002) — same bytecode deploys to mainnet unchanged.
-  const CONTRACT = '0xf004c40f0b8204c21991309A808dA2ee4895B9Eb';
-  const RPC = 'https://rpc.testnet.arc.network';
+  // Deployed on Arc Mainnet (Chain ID 5042). Mainnet deployment pending on-chain funding — contract address TBD.
+  const CONTRACT = '0xREPLACE_MAINNET_PENDING';
+  const RPC = 'https://rpc.mainnet.arc.io';
 
-  // Minimal Arc Testnet descriptor (viem doesn't ship one yet as of this writing).
+  // Minimal Arc Mainnet descriptor (viem doesn't ship one yet as of this writing).
   const arc = {
-    id: 5042002,
-    name: 'Arc Testnet',
-    network: 'arc-testnet',
+    id: 5042,
+    name: 'Arc',
+    network: 'arc',
     nativeCurrency: { name: 'USDC', symbol: 'USDC', decimals: 18 },
     rpcUrls: { default: { http: [RPC] } },
-    blockExplorers: { default: { name: 'Arc Testnet Explorer', url: 'https://explorer.testnet.arc.io' } },
+    blockExplorers: { default: { name: 'Arc Explorer', url: 'https://explorer.arc.io' } },
   };
 
   const client = createPublicClient({ chain: arc, transport: http(RPC) });

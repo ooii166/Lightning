@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""CDP 驱动：打开 ArcFlow 部署页 → 连接 → 用 trailing-slash 技巧重新加入 Arc Testnet(5042002) →
+"""CDP 驱动：打开 ArcFlow 部署页 → 连接 → 加入 Arc Mainnet(5042) →
 自动点掉 MM 的「连接 / 添加网络」弹窗（仅配置类，不动私钥、不签交易）→ 截图回报状态。
 真正的「部署合约」签名步骤留给用户手动确认，本脚本绝不触发。"""
 import sys, os, json, time, urllib.request, urllib.parse
@@ -144,8 +144,8 @@ def main():
 
     st = read_status(tab)
     # 若添加后未自动切链，尝试 ③ 切链（同样只是配置，安全）
-    if st.get('chainId') != '0x4CEF52' and not st.get('switchDisabled'):
-        print('== ③ switch to Arc Testnet ==')
+    if st.get('chainId') != '0x13b2' and not st.get('switchDisabled'):
+        print('== ③ switch to Arc Mainnet ==')
         s = Session(tab); s.call('Runtime.enable')
         evaluate(s, "document.getElementById('btnSwitch').click(); 'ok'")
         s.close()

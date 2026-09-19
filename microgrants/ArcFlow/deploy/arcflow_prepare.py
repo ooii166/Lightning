@@ -60,7 +60,7 @@ def status(tab):
       return o;})()""")
     s.close(); return st
 
-# pick a deploy tab (prefer one already on 5042002)
+# pick a deploy tab (prefer one already on 5042 / Arc mainnet)
 tabs = deploy_tabs()
 print('deploy tabs:', len(tabs))
 tab = tabs[0]
@@ -73,12 +73,12 @@ time.sleep(1.5)
 st = status(tab)
 print('STATUS:', json.dumps(st, ensure_ascii=False))
 
-# faucet if needed
-if st.get('chainId')=='0x4cef52':
+# 主网无 faucet；若已切到主网但余额不足，代开充值页 (portal.arc.io) 供用户充值
+if st.get('chainId')=='0x13b2':
     s = Session(tab); s.call('Runtime.enable')
     evaluate(s, "document.getElementById('btnFaucet').click(); 'ok'")
     s.close()
-    print('   faucet page opened in new tab')
+    print('   充值页 portal.arc.io 已在新标签打开')
     time.sleep(2)
     # screenshot
     try:
@@ -88,6 +88,6 @@ if st.get('chainId')=='0x4cef52':
         print('   shot saved', SHOT)
     except Exception as e:
         print('   shot err', e)
-    print('\nREADY FOR DEPLOY — user must click ⑤ and approve in MetaMask.')
+    print('\nREADY FOR DEPLOY — user must fund 主网 USDC first, then click ⑤ and approve in MetaMask.')
 else:
-    print('chainId not 5042002, cannot proceed to faucet')
+    print('chainId not 0x13b2 (Arc mainnet), cannot proceed')

@@ -46,11 +46,11 @@ ArcFlow/
 
 ## Live deployment
 
-> **Status:** deployed on **Arc Testnet** (Chain ID 5042002) as a working proof-of-concept. Mainnet deployment is pending Circle's mainnet GA / your go-ahead — the same bytecode deploys unchanged.
+> **Status:** code switched to **Arc Mainnet** (Chain ID 5042). Mainnet deployment is pending on-chain funding of the deployer address — the same bytecode deploys unchanged.
 
-- **Contract (testnet):** `https://explorer.testnet.arc.io/address/0xf004c40f0b8204c21991309A808dA2ee4895B9Eb`
-- **Web (testnet):** `https://ooii166.github.io/ArcFlow/` — currently points at the testnet contract
-- **RPC (testnet):** `https://rpc.testnet.arc.network`
+- **Contract (mainnet):** pending — will be filled after deployment
+- **Web:** `https://ooii166.github.io/Lightning/microgrants/ArcFlow/web/` — points at the mainnet contract once deployed
+- **RPC (mainnet):** `https://rpc.mainnet.arc.io`
 
 ---
 

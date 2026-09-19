@@ -18,10 +18,10 @@ import urllib.request
 from urllib.parse import quote
 
 # ── Config ────────────────────────────────────────────────────────────
-CONTRACT = os.environ.get('ARCFLOW_CONTRACT', '0xf004c40f0b8204c21991309A808dA2ee4895B9Eb')
-RPC      = os.environ.get('ARCFLOW_RPC', 'https://rpc.testnet.arc.network')
+CONTRACT = os.environ.get('ARCFLOW_CONTRACT', '0xREPLACE_MAINNET_PENDING')
+RPC      = os.environ.get('ARCFLOW_RPC', 'https://rpc.mainnet.arc.io')
 PK       = os.environ.get('ARCFLOW_PK', '')             # hex private key (no 0x)
-CHAIN_ID = 5042002                                      # Arc Testnet; switch to 5042 for mainnet
+CHAIN_ID = 5042                                         # Arc Mainnet
 
 # Chain IDs (match the Solidity contract constants)
 CHAIN = {
